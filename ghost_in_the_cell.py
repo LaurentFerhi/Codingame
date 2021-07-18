@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import random
 
+# Carte
 factory_count = int(input())  # the number of factories
 link_count = int(input())  # the number of links between factories
 carte = []
@@ -11,6 +12,10 @@ for i in range(link_count):
     factory_1, factory_2, distance = [int(j) for j in input().split()]
     carte.append([factory_1, factory_2, distance])
 df_carte = pd.DataFrame(carte, columns=['factory_1', 'factory_2', 'distance'])
+
+# Ressources
+bombs = 2
+turn = 1
 
 # game loop
 while True:
@@ -41,10 +46,19 @@ while True:
 
     # Game engine
     go = False
+    go_bomb = False
     ordre = 'WAIT'
     tries = 0
 
     while not go:
+
+        # Trouve la factory enemie avec le plus de cyborgs
+        list_en_fact = list(df_factories[df_factories['player'] == -1].sort_values('cyborgs',ascending=False).index)
+        if len(list_en_fact) >= 2 and bombs > 0:
+            go_bomb = True
+            bomb_1 = df_factories.iloc[list_en_fact[0]]['id']
+            bomb_2 = df_factories.iloc[list_en_fact[1]]['id']
+            print(bomb_1, bomb_2, file = sys.stderr)
 
         # Trouve une factory a moi
         list_from = list(df_factories[df_factories['player'] == 1].index)
@@ -57,7 +71,16 @@ while True:
         # Trouve une factory enemie ou neutre
         list_to = list(df_factories[df_factories['player'] != 1].index)
 
-        if len(list_to) > 0:
+        # Envoie bomb
+        if go_bomb:
+            b1 = "BOMB {} {}".format(FROM,bomb_1)
+            b2 = "BOMB {} {}".format(FROM,bomb_2)
+            ordre = b1+';'+b2
+            bombs = 0
+            go=True
+
+        # Envoie cyborg
+        elif len(list_to) > 0:
             to_id = random.sample(list_to,1)[0]
             print('TO',to_id, file=sys.stderr)
 
@@ -67,15 +90,15 @@ while True:
             print(FROM, cyborg_dispo, TO, cyborg_requis, file = sys.stderr)
 
             # Si ma factory a au moins & cyborg de plus que l'enemie, on y envoie requis+1
-            surplus = 1
+            surplus = 2
             if cyborg_dispo >= cyborg_requis+surplus:
                 go = True
                 ordre = "MOVE {} {} {}".format(FROM,TO,cyborg_requis+surplus)
-        
         tries+=1
-
-        if tries > 10:
+        if tries > 5:
             go = True
+    
+    turn+=1
 
+    # Execute order
     print(ordre)
-
